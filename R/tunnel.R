@@ -14,6 +14,7 @@
 #'                    remote_port, local_port)
 #' closeTunnel(sshTunnel)
 #' }
+#' @export
 tunnel = function(remote_server, server_username,
                   remote_port = 3306, local_port = 9000) {
   flags = paste0("-fN -L ", local_port, ":localhost:",
@@ -42,11 +43,10 @@ tunnel = function(remote_server, server_username,
 #'                    remote_port, local_port)
 #' closeTunnel(sshTunnel)
 #' }
+#' @export
 closeTunnel = function(con) {
   flags = paste0('-ef "^ssh -fN -L ', con$local_port, '"')
-  ## cat(flags)
   x = system2("pkill", flags)
-  print(x)
   if (x == 0) {
     T
   } else if (x == 1) {

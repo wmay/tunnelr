@@ -2,3 +2,4 @@
 
 export(closeTunnel)
 export(tunnel)
+export(tunnelOpen)

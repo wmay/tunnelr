@@ -11,16 +11,22 @@ portAvailable = function(n) {
 
 findPutty = function() {
   # look in C:\Program Files...
-  folders = shell("dir C:", intern = T)
+  folders = shell("dir C:\\ /A:D /B", intern = T)
   pfolders = folders[grep("Program Files", folders)]
   plink_path = NA
   for (folder in pfolders) {
-    cmd = paste0("dir C:/", folder)
-    files = shell(cmd, intern = T)
-    include_plink = any(grepl("plink", files))
-    if (include_plink) {
-      plink_path = folder
-      break
+    cmd = paste0("dir \"C:\\", folder, "\" /A:D /B")
+    folders2 = shell(cmd, intern = T)
+    include_putty = any(grepl("^PuTTY$", folders2, ignore.case = T))
+    if (include_putty) {
+      folder2 = folders2[grep("^PuTTY$", folders2, ignore.case = T)[1]]
+      cmd = paste0("dir \"C:\\", folder, "\\", folder2, "\" /B")
+      files = shell(cmd, intern = T)
+      include_plink = any(grepl("plink\\.exe", files, ignore.case = T))
+      if (include_plink) {
+        plink_path = paste0("C:\\", folder, "\\", folder2, "\\plink.exe")
+        break
+      }
     }
   }
   if (is.na(plink_path)) stop("Path to plink not found.")
@@ -52,9 +58,9 @@ tunnel = function(remote_server, server_username,
                    ' -o "ExitOnForwardFailure yes"')
     x = system2("ssh", flags)
   } else {
-    "start plink -N -ssh wm177874@projpet.rit.albany.edu -L 9000:projpet.rit.albany.edu:3306"
     plink_path = findPutty()
-    cmd = paste0("start ", plink_path, "-N -ssh ",
+    windowtitle = paste0("tunnelr", local_port)
+    cmd = paste0("start \"", windowtitle, "\" \"", plink_path, "\" -N -ssh ",
                  server_username, "@",
                  remote_server, " -L ", local_port, ":",
                  remote_server, ":", remote_port)
@@ -62,8 +68,8 @@ tunnel = function(remote_server, server_username,
     # wait until process is running
     running = F
     while (!running) {
-      sleep(.5)
-      running = !portAvailable(n)
+      Sys.sleep(.5)
+      running = !portAvailable(local_port)
     }
     x
   }
@@ -99,6 +105,7 @@ tunnelOpen = function(con) {
     cmd = paste0('tasklist /fi "windowtitle eq tunnelr',
                  con$local_port, '"')
     x = shell(cmd, intern = T)
+    x = x[!grepl("^INFO: ", x, ignore.case = T)]
   }
   if (length(x) > 0) {
     T
@@ -107,7 +114,7 @@ tunnelOpen = function(con) {
   }
 }
 
-#' Close an SSH tunnel
+#' Close an SSH tunnel opened by tunnelr
 #' 
 #' @param con An object of class "tunnel" returned by \code{tunnel()}.
 #' @return \code{TRUE} if the function closes the tunnel associated
@@ -125,6 +132,7 @@ closeTunnel = function(con) {
     flags = paste0('-ef "^ssh -fN -L ', con$local_port, '"')
     x = system2("pkill", flags)
   } else {
+    if (!tunnelOpen(con)) return(NA)
     cmd = paste0('taskkill /fi "windowtitle eq tunnelr',
                  con$local_port, '"')
     x = shell(cmd)

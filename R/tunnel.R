@@ -129,7 +129,7 @@ tunnelOpen = function(con) {
 #' @export
 closeTunnel = function(con) {
   if (.Platform$OS.type == "unix") {
-    flags = paste0('-ef "^ssh -fN -L ', con$local_port, '"')
+    flags = paste0('-f "^ssh -fN -L ', con$local_port, '"')
     x = system2("pkill", flags)
   } else {
     if (!tunnelOpen(con)) return(NA)
